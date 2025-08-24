@@ -178,9 +178,9 @@ app.post('/api/register', upload.array('idCards', 6), async (req, res, next) => 
 
 
 // --- DEPLOYMENT CONFIGURATION ---
-app.use(express.static(path.join(__dirname, 'build')));
+app.use(express.static(path.join(__dirname, 'dist')));
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.use((err, req, res, next) => {
