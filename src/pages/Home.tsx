@@ -26,7 +26,7 @@ const Home = () => {
             <p className="text-lg md:text-xl text-gray-200 mb-8 leading-relaxed">
               Join the most exciting 12-hour coding marathon! Collaborate, innovate, and build solutions 
               that can change the world. Open to all MVLU college students with E-certificates and opportunities 
-              for SIH 2025 selection.
+              for SMART INDIA HACKATHON(SIH) 2025 selection.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
@@ -132,7 +132,7 @@ const Home = () => {
             Ready to Join the Challenge?
           </h2>
           <p className="text-xl mb-8 text-blue-100">
-            Registration Fee: ₹120 per team.
+            Registration Fee: ₹300 per team.
           </p>
           <Link
             to="/registration"

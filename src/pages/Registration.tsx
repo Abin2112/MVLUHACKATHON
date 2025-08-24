@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, Check, AlertCircle, Users, CreditCard } from 'lucide-react';
+import axios from 'axios';
 
 interface Participant {
   name: string;
@@ -38,13 +39,13 @@ const Registration = () => {
       setTeamNameAvailable(null);
       return;
     }
-    
-    // Simulate API call to check team name availability
-    setTimeout(() => {
-      // Simple check - in real implementation, this would be a database query
-      const unavailableNames = ['test', 'demo', 'sample'];
-      setTeamNameAvailable(!unavailableNames.includes(name.toLowerCase()));
-    }, 500);
+    try {
+      const response = await axios.get(`/api/check-team-name/${name}`);
+      setTeamNameAvailable(response.data.available);
+    } catch (error) {
+      console.error('Error checking team name:', error);
+      setTeamNameAvailable(false);
+    }
   };
 
   const updateParticipant = (index: number, field: keyof Participant, value: any) => {
@@ -58,16 +59,13 @@ const Registration = () => {
   };
 
   const validateForm = () => {
-    // Check if team name is available
-    if (!teamNameAvailable) return false;
+    if (teamNameAvailable !== true) return false;
     
-    // Check if all participants have filled all fields
     const allFieldsFilled = participants.every(p => 
       p.name && p.rollNumber && p.department && p.year && p.gender && p.phoneNumber && p.idCard
     );
     if (!allFieldsFilled) return false;
     
-    // Check if at least one female member
     const hasFemale = participants.some(p => p.gender === 'Female');
     if (!hasFemale) return false;
     
@@ -78,29 +76,52 @@ const Registration = () => {
     e.preventDefault();
     
     if (!validateForm()) {
-      alert('Please fill all fields correctly and ensure at least one female member');
+      alert('Please fill all fields correctly, ensure the team name is available, and include at least one female member.');
       return;
     }
 
     setIsSubmitting(true);
     
+    const formData = new FormData();
+    formData.append('teamName', teamName);
+
+    const participantsData = participants.map(p => ({
+      name: p.name,
+      rollNumber: p.rollNumber,
+      department: p.department,
+      year: p.year,
+      gender: p.gender,
+      phoneNumber: p.phoneNumber,
+      idCard: { name: p.idCard?.name }
+    }));
+    formData.append('participants', JSON.stringify(participantsData));
+
+    // **This is the key change**
+    // Append each file with the same field name 'idCards'
+    // This matches the `upload.array('idCards', 6)` on the server
+    participants.forEach((p) => {
+      if (p.idCard) {
+        formData.append(`idCards`, p.idCard);
+      }
+    });
+
     try {
-      // Simulate form submission
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await axios.post('/api/register', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        setRegistrationId(response.data.registrationId);
+        setSubmissionSuccess(true);
+      } else {
+        throw new Error(response.data.message || 'Registration failed on the server.');
+      }
       
-      // Generate registration ID
-      const regId = `MVLUHACK${String(Math.floor(Math.random() * 100) + 1).padStart(2, '0')}`;
-      setRegistrationId(regId);
-      setSubmissionSuccess(true);
-      
-      // In real implementation:
-      // 1. Store data in Google Sheet
-      // 2. Upload ID cards to Google Drive
-      // 3. Send WhatsApp/SMS notifications
-      // 4. Send confirmation email
-      
-    } catch (error) {
-      alert('Registration failed. Please try again.');
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      alert(`Registration failed: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -124,14 +145,8 @@ const Registration = () => {
               <p className="text-sm text-gray-600 mb-2">Your Registration ID:</p>
               <p className="text-2xl font-bold text-blue-600">{registrationId}</p>
             </div>
-            <div className="text-left space-y-2 text-sm text-gray-600">
-              <p>✓ Registration data saved to Google Sheet</p>
-              <p>✓ ID cards uploaded to Google Drive</p>
-              <p>✓ Confirmation sent via WhatsApp</p>
-              <p>✓ Email confirmation will be sent shortly</p>
-            </div>
             <p className="text-sm text-gray-500 mt-6">
-              Please save your Registration ID for future reference.
+              Please save your Registration ID for future reference. Also remember to complete the payment of ₹300 per team to confirm your participation.
             </p>
           </div>
         </div>
@@ -149,7 +164,7 @@ const Registration = () => {
           <div className="mt-4 bg-yellow-100 border border-yellow-400 rounded-lg p-4 inline-block">
             <div className="flex items-center space-x-2">
               <CreditCard className="h-5 w-5 text-yellow-600" />
-              <span className="text-yellow-800 font-semibold">Registration Fee: ₹120 per team</span>
+              <span className="text-yellow-800 font-semibold">Registration Fee: ₹300 per team</span>
             </div>
           </div>
         </div>
@@ -212,98 +227,48 @@ const Registration = () => {
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Participant Input Fields... */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                      <input
-                        type="text"
-                        value={participant.name}
-                        onChange={(e) => updateParticipant(index, 'name', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" value={participant.name} onChange={(e) => updateParticipant(index, 'name', e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required />
                     </div>
-                    
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
-                      <input
-                        type="text"
-                        value={participant.rollNumber}
-                        onChange={(e) => updateParticipant(index, 'rollNumber', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
+                        <input type="text" value={participant.rollNumber} onChange={(e) => updateParticipant(index, 'rollNumber', e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required />
                     </div>
-                    
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
-                      <select
-                        value={participant.department}
-                        onChange={(e) => updateParticipant(index, 'department', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="">Select Department</option>
-                        {departments.map(dept => (
-                          <option key={dept} value={dept}>{dept}</option>
-                        ))}
-                      </select>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+                        <select value={participant.department} onChange={(e) => updateParticipant(index, 'department', e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Select Department</option>
+                            {departments.map(dept => (<option key={dept} value={dept}>{dept}</option>))}
+                        </select>
                     </div>
-                    
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Year *</label>
-                      <select
-                        value={participant.year}
-                        onChange={(e) => updateParticipant(index, 'year', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="">Select Year</option>
-                        {years.map(year => (
-                          <option key={year} value={year}>{year}</option>
-                        ))}
-                      </select>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Year *</label>
+                        <select value={participant.year} onChange={(e) => updateParticipant(index, 'year', e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Select Year</option>
+                            {years.map(year => (<option key={year} value={year}>{year}</option>))}
+                        </select>
                     </div>
-                    
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-                      <select
-                        value={participant.gender}
-                        onChange={(e) => updateParticipant(index, 'gender', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="">Select Gender</option>
-                        {genders.map(gender => (
-                          <option key={gender} value={gender}>{gender}</option>
-                        ))}
-                      </select>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                        <select value={participant.gender} onChange={(e) => updateParticipant(index, 'gender', e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Select Gender</option>
+                            {genders.map(gender => (<option key={gender} value={gender}>{gender}</option>))}
+                        </select>
                     </div>
-                    
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                      <input
-                        type="tel"
-                        value={participant.phoneNumber}
-                        onChange={(e) => updateParticipant(index, 'phoneNumber', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                        <input type="tel" value={participant.phoneNumber} onChange={(e) => updateParticipant(index, 'phoneNumber', e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required />
                     </div>
                   </div>
                   
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ID Card Upload *
+                      ID Card Upload (jpg,png,jpeg)*
                     </label>
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => handleFileUpload(index, e.target.files?.[0] || null)}
-                        className="hidden"
-                        id={`file-${index}`}
-                        required
-                      />
+                      <input type="file" accept="image/*,.pdf" onChange={(e) => handleFileUpload(index, e.target.files?.[0] || null)} className="hidden" id={`file-${index}`} required />
                       <label htmlFor={`file-${index}`} className="cursor-pointer">
                         <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                         <p className="text-sm text-gray-600">
