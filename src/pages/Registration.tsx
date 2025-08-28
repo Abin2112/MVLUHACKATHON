@@ -164,7 +164,8 @@ const Registration = () => {
           <div className="mt-4 bg-yellow-100 border border-yellow-400 rounded-lg p-4 inline-block">
             <div className="flex items-center space-x-2">
               <CreditCard className="h-5 w-5 text-yellow-600" />
-              <span className="text-yellow-800 font-semibold">Registration Fee: ₹300 per team</span>
+              <span className="text-yellow-800 font-semibold">Registration Fee: ₹300 per team.</span>
+              
             </div>
           </div>
         </div>

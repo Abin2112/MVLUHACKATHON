@@ -44,6 +44,17 @@ const Home = () => {
   <Download className="inline h-5 w-5 mr-2" />
   Download Brochure
 </a>
+
+<a
+  href="https://drive.google.com/file/d/1ZblwVVllnTGUKRMCghNUNHEEH39NBGIv/view?usp=sharing"
+  target="_blank" 
+  rel="noopener noreferrer"
+  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-800 px-8 py-3 rounded-lg text-lg font-semibold transition-all text-center inline-flex items-center justify-center"
+>
+  <Download className="inline h-5 w-5 mr-2" />
+  Download Rules
+</a>
+
             </div>
           </div>
 
